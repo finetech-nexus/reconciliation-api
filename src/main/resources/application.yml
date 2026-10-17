@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: reconciliation-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5437/reconciliation}
+    username: ${SPRING_DATASOURCE_USERNAME:reconciliation}
+    password: ${SPRING_DATASOURCE_PASSWORD:reconciliation}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      write-bigdecimal-as-plain: true
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8110}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+reconcilia:
+  storage-dir: ${RECONCILIA_STORAGE_DIR:./data/attachments}
+  fineract:
+    base-url: ${FINERACT_BASE_URL:}
+    tenant: ${FINERACT_TENANT:default}
+    accounts-path: ${FINERACT_ACCOUNTS_PATH:}
+    entries-path: ${FINERACT_ENTRIES_PATH:}
+
+logging:
+  pattern:
+    level: "%5p [corr:%X{correlationId}]"

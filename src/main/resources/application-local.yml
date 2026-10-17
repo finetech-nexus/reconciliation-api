@@ -1,0 +1,8 @@
+# Profil de développement sans conteneur. La cible reste PostgreSQL
+# (docker compose ou le namespace reconciliation).
+spring:
+  datasource:
+    url: jdbc:h2:mem:reconciliation;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
