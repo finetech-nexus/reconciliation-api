@@ -62,6 +62,8 @@ class SettingsFlowTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         assertTrue(listed.contains(code));
+        assertTrue(listed.contains("TN-08"));
+        assertTrue(listed.contains("BIATTNTT"));
 
         mvc.perform(post("/api/v1/imports/core-banking/pull")
                         .headers(headers(OPERATOR, "RECON_OPERATOR"))
