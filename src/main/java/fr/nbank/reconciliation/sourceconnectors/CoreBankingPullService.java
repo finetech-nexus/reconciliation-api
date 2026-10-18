@@ -92,7 +92,8 @@ public class CoreBankingPullService {
         String raw = fetch(profile, businessDate);
         Rows.SourceRow source = store.findSource("CORE_BANKING")
                 .orElseThrow(() -> new ApiException(422, "UNKNOWN_SOURCE", "Système Core banking absent"));
-        CorePayloadMapper.Mapped mapped = CorePayloadMapper.map(json, raw, gl -> store.accountForGl(source.id(), gl).orElse(gl));
+        CorePayloadMapper.Mapped mapped = CorePayloadMapper.map(json, raw,
+                gl -> store.accountForGl(source.id(), gl).orElse(null), currency);
         if (mapped.journalRows() == 0) {
             throw new ApiException(422, "EMPTY_BATCH", "Le core n'a renvoyé aucune écriture pour cette date");
         }
@@ -116,7 +117,8 @@ public class CoreBankingPullService {
         String path = profile.entriesPath().startsWith("/") ? profile.entriesPath() : "/" + profile.entriesPath();
         String url = root + path;
         if (!url.contains("?")) {
-            url = url + "?fromDate=" + businessDate + "&toDate=" + businessDate + "&dateFormat=yyyy-MM-dd&locale=en";
+            url = url + "?fromDate=" + businessDate + "&toDate=" + businessDate
+                    + "&dateFormat=yyyy-MM-dd&locale=en&limit=0";
         }
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(20))

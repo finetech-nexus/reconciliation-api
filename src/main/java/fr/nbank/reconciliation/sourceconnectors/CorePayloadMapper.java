@@ -20,7 +20,7 @@ public final class CorePayloadMapper {
     public record Mapped(String body, int journalRows) {
     }
 
-    public static Mapped map(ObjectMapper json, String body, Function<String, String> accountOfGl) {
+    public static Mapped map(ObjectMapper json, String body, Function<String, String> accountOfGl, String currency) {
         try {
             JsonNode root = json.readTree(body);
             JsonNode items = root.path("pageItems");
@@ -33,13 +33,21 @@ public final class CorePayloadMapper {
                     continue;
                 }
                 String gl = firstText(item, "glAccountCode", "glAccountId");
+                String account = accountOfGl.apply(gl);
+                String lineCurrency = currency(item.get("currency"));
+                if (account == null || account.isBlank()) {
+                    continue;
+                }
+                if (currency != null && !currency.equalsIgnoreCase(lineCurrency)) {
+                    continue;
+                }
                 ObjectNode row = json.createObjectNode();
                 row.put("source_id", "JE-" + firstText(item, "id", "transactionId"));
-                row.put("account_id", accountOfGl.apply(gl));
+                row.put("account_id", account);
                 String booked = date(item.get("transactionDate"));
                 row.put("booking_date", booked);
                 row.put("value_date", booked);
-                row.put("currency", currency(item.get("currency")));
+                row.put("currency", lineCurrency);
                 row.put("amount", item.path("amount").decimalValue().toPlainString());
                 row.put("direction", direction(item.get("entryType")));
                 row.put("reference", firstText(item, "referenceNumber", "transactionId"));
