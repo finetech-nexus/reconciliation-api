@@ -35,8 +35,15 @@ La Banque centrale ne se tire pas par l'appel du core. Le canal est le fichier :
 
 L'historique est la liste des lots BCT. Le curseur du compte `BCT-TND-001` dit jusqu'où la journée est chargée. Un fichier du 18 sans fichier du 17 laisse le trou visible. Le rapprochement continue sur ce qui est chargé ; le jour manquant reste à déposer.
 
-## Correspondants
+## Canaux tunisiens
 
-Chaque correspondant créé dans Réglages ouvre un compte nostro (code, nom, BIC, devise). Le canal est le fichier MT940, MT950 ou camt.053, ramené au CSV canonique. Même règle de séquence : une page de relevé, un lot, et le repère du compte avance. Le premier fichier fixe le point de départ. Il n'y a pas d'historique inventé avant ce dépôt.
+Le système d'import n'est pas « correspondant ». En Tunisie, un mouvement externe vient d'un rail :
 
-Le livre européen (`CORR-EUR-014`) et le livre BCT (`BCT-TND-001`) restent deux comptes. Un relevé EUR ne se charge pas sur le compte dinar.
+| Système | Rôle |
+| --- | --- |
+| BCT | Relevé du compte courant et règlement SGMT. Le net de la compensation s'y inscrit. |
+| SIBTEL | Compensation des virements et prélèvements en dinars. Les banques tunisiennes (BNA, STB, BIAT, …) sont des participants de cette compensation. |
+| SMT | Compensation monétique. Le règlement net revient sur le compte BCT. |
+| SWIFT | Relevé du correspondant étranger. Aujourd'hui le nostro EUR est NexusBankEu (`CORR-EUR-014`). Un virement TND entre deux BIC tunisiens est refusé sur ce canal. |
+
+Chaque rail se charge par fichier, un lot par compte et par jour. Le livre européen et le livre BCT (`BCT-TND-001`) restent deux comptes. Un relevé EUR ne se charge pas sur le compte dinar.

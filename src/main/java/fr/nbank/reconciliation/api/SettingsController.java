@@ -65,7 +65,7 @@ public class SettingsController {
         if (store.findCorrespondent(command.code()).isPresent()) {
             throw new ApiException(409, "CORRESPONDENT_EXISTS", "Ce correspondant existe déjà");
         }
-        Rows.SourceRow source = store.findSource("CORRESPONDENT")
+        Rows.SourceRow source = store.findSource("SWIFT")
                 .orElseThrow(() -> new ApiException(422, "UNKNOWN_SOURCE", "Système correspondant absent"));
         store.insertCorrespondent(UUID.randomUUID(), command.code(), command.name(), blankToNull(command.bic()),
                 command.currency(), command.accountCode());
