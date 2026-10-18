@@ -1,4 +1,6 @@
-# Imports récurrents : core banking, BCT et correspondants
+# Imports récurrents : Core banking, BCT, SIBTEL, SMT, SWIFT
+
+Les fichiers d'exemple sont dans [sources.md](sources.md).
 
 Un relevé n'écrase pas le précédent. L'historique est la suite des lots (`import_batch`). Le curseur (`statement_cursor`) n'est qu'un repère de reprise, visible dans Réglages : dernière date chargée, numéro de séquence, lot, et un trou éventuel.
 
