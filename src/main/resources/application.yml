@@ -38,6 +38,11 @@ reconcilia:
     tenant: ${FINERACT_TENANT:default}
     accounts-path: ${FINERACT_ACCOUNTS_PATH:}
     entries-path: ${FINERACT_ENTRIES_PATH:}
+    token-url: ${FINERACT_TOKEN_URL:}
+    client-id: ${FINERACT_CLIENT_ID:}
+    client-secret: ${FINERACT_CLIENT_SECRET:}
+    username: ${FINERACT_USERNAME:}
+    password: ${FINERACT_PASSWORD:}
 
 logging:
   pattern:

@@ -14,10 +14,13 @@ import org.springframework.stereotype.Service;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLParameters;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
@@ -34,6 +37,11 @@ public class CoreBankingPullService {
     private final String envAccountsPath;
     private final String envEntriesPath;
     private final String envTenant;
+    private final String tokenUrl;
+    private final String clientId;
+    private final String clientSecret;
+    private final String username;
+    private final String password;
     private final HttpClient http;
 
     public CoreBankingPullService(
@@ -43,7 +51,12 @@ public class CoreBankingPullService {
             @Value("${reconcilia.fineract.base-url:}") String envBaseUrl,
             @Value("${reconcilia.fineract.accounts-path:}") String envAccountsPath,
             @Value("${reconcilia.fineract.entries-path:}") String envEntriesPath,
-            @Value("${reconcilia.fineract.tenant:default}") String envTenant) {
+            @Value("${reconcilia.fineract.tenant:default}") String envTenant,
+            @Value("${reconcilia.fineract.token-url:}") String tokenUrl,
+            @Value("${reconcilia.fineract.client-id:}") String clientId,
+            @Value("${reconcilia.fineract.client-secret:}") String clientSecret,
+            @Value("${reconcilia.fineract.username:}") String username,
+            @Value("${reconcilia.fineract.password:}") String password) {
         this.store = store;
         this.imports = imports;
         this.json = json;
@@ -51,6 +64,11 @@ public class CoreBankingPullService {
         this.envAccountsPath = envAccountsPath;
         this.envEntriesPath = envEntriesPath;
         this.envTenant = envTenant;
+        this.tokenUrl = tokenUrl;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.username = username;
+        this.password = password;
         this.http = clusterClient();
     }
 
@@ -107,6 +125,10 @@ public class CoreBankingPullService {
                 .GET();
         if ("FINERACT".equals(profile.connectorType())) {
             request.header("Fineract-Platform-TenantId", profile.tenant());
+            String token = bearer();
+            if (token != null) {
+                request.header("Authorization", "Bearer " + token);
+            }
         }
         try {
             HttpResponse<String> response = http.send(request.build(), HttpResponse.BodyHandlers.ofString());
@@ -117,8 +139,42 @@ public class CoreBankingPullService {
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new ApiException(502, "CORE_UNREACHABLE", "Appel au core impossible");
+            throw new ApiException(502, "CORE_UNREACHABLE", "Appel au core impossible (" + ex.getClass().getSimpleName() + ")");
         }
+    }
+
+    private String bearer() {
+        if (blank(tokenUrl) || blank(clientId) || blank(username)) {
+            return null;
+        }
+        String form = "grant_type=password&client_id=" + enc(clientId)
+                + "&client_secret=" + enc(clientSecret)
+                + "&username=" + enc(username)
+                + "&password=" + enc(password);
+        HttpRequest request = HttpRequest.newBuilder(URI.create(tokenUrl))
+                .timeout(Duration.ofSeconds(15))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .build();
+        try {
+            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new ApiException(502, "CORE_UNREACHABLE", "Jeton du core refusé (" + response.statusCode() + ")");
+            }
+            String token = json.readTree(response.body()).path("access_token").asText("");
+            if (token.isBlank()) {
+                throw new ApiException(502, "CORE_UNREACHABLE", "Jeton du core absent");
+            }
+            return token;
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApiException(502, "CORE_UNREACHABLE", "Jeton du core impossible (" + ex.getClass().getSimpleName() + ")");
+        }
+    }
+
+    private static String enc(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
     }
 
     private static boolean blank(String value) {
@@ -144,7 +200,13 @@ public class CoreBankingPullService {
             }};
             SSLContext ssl = SSLContext.getInstance("TLS");
             ssl.init(null, trust, new SecureRandom());
-            return HttpClient.newBuilder().sslContext(ssl).connectTimeout(Duration.ofSeconds(5)).build();
+            SSLParameters parameters = new SSLParameters();
+            parameters.setEndpointIdentificationAlgorithm("");
+            return HttpClient.newBuilder()
+                    .sslContext(ssl)
+                    .sslParameters(parameters)
+                    .connectTimeout(Duration.ofSeconds(5))
+                    .build();
         } catch (Exception ex) {
             return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
         }
