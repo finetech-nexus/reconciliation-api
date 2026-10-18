@@ -38,6 +38,8 @@ class SettingsFlowTest {
                 .andReturn().getResponse().getContentAsString();
         assertEquals("CORE_BANKING", json.readTree(profile).get("sourceSystem").asText());
         assertEquals("FINERACT", json.readTree(profile).get("connectorType").asText());
+        assertTrue(json.readTree(profile).get("baseUrl").asText().contains("fineract-server.core-banking"));
+        assertEquals("nexusbank", json.readTree(profile).get("tenant").asText());
 
         mvc.perform(put("/api/v1/settings/core-banking")
                         .headers(headers(ADMIN, "RECON_ADMIN"))
@@ -95,10 +97,8 @@ class SettingsFlowTest {
         mvc.perform(post("/api/v1/imports/" + importId + "/files")
                         .headers(headers(OPERATOR, "RECON_OPERATOR"))
                         .contentType("text/csv")
-                        .content("""
-                                source_id;account_id;booking_date;value_date;currency;amount;direction;reference
-                                %s;BCT-TND-001;2026-10-16;2026-10-16;TND;10.000;DEBIT;REF-CUR
-                                """.formatted(batch)))
+                        .content(("\uFEFFSource_Id,account_id,booking_date,value_date,currency,amount,direction,reference\n"
+                                + "%s,BCT-TND-001,2026-10-16,2026-10-16,TND,10.000,DEBIT,REF-CUR\n").formatted(batch)))
                 .andExpect(status().isOk());
         mvc.perform(post("/api/v1/imports/" + importId + "/commit")
                         .headers(headers(OPERATOR, "RECON_OPERATOR"))

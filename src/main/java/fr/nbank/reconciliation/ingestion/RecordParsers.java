@@ -26,18 +26,25 @@ public class RecordParsers {
 
     public ParsedFile parse(String contentType, String body) {
         String type = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        if (body != null && body.startsWith("\uFEFF")) {
+            body = body.substring(1);
+        }
+        String trimmed = body == null ? "" : body.stripLeading();
         if (type.contains("spreadsheet") || type.contains("xlsx") || type.contains("xml") || type.contains("fixed")) {
             return ParsedFile.error("Profil non activé pour ce format. Le connecteur doit être validé sans modifier le moteur.");
         }
-        if (type.contains("json")) {
+        if (type.contains("json") || trimmed.startsWith("{") || trimmed.startsWith("[")) {
             return parseJson(body);
         }
-        return parseCsv(body, ';');
+        return parseCsv(body, delimiterOf(body));
     }
 
     public ParsedFile parseCsv(String body, char delimiter) {
         if (body == null || body.isBlank()) {
             return ParsedFile.error("Fichier vide");
+        }
+        if (body.startsWith("\uFEFF")) {
+            body = body.substring(1);
         }
         String[] lines = body.replace("\r\n", "\n").replace('\r', '\n').split("\n");
         int start = 0;
@@ -47,7 +54,9 @@ public class RecordParsers {
         if (start >= lines.length) {
             return ParsedFile.error("Fichier vide");
         }
-        List<String> header = split(lines[start], delimiter);
+        List<String> header = split(lines[start], delimiter).stream()
+                .map(cell -> cell.toLowerCase(Locale.ROOT))
+                .toList();
         if (!header.equals(HEADER) && !(header.size() == 9 && header.subList(0, 8).equals(HEADER) && header.get(8).equals("reversal_of"))) {
             return ParsedFile.error("En-tête CSV invalide. Colonnes attendues : " + String.join(String.valueOf(delimiter), HEADER));
         }
@@ -167,6 +176,20 @@ public class RecordParsers {
 
     private static boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static char delimiterOf(String body) {
+        if (body == null) {
+            return ';';
+        }
+        String first = body.replace("\r\n", "\n").replace('\r', '\n').lines()
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .findFirst()
+                .orElse("");
+        long commas = first.chars().filter(ch -> ch == ',').count();
+        long semicolons = first.chars().filter(ch -> ch == ';').count();
+        return commas > semicolons ? ',' : ';';
     }
 
     private static List<String> split(String line, char delimiter) {

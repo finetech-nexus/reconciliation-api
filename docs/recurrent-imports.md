@@ -20,7 +20,7 @@ La purge n'est pas le cycle quotidien. Elle efface les mouvements, les lots, les
 
 ## Core banking
 
-Le système source des écritures est `CORE_BANKING`. Fineract et T24 sont le connecteur choisi dans Réglages, avec l'adresse de l'instance. Aucun chemin d'une version précise n'est codé en dur.
+Le système source des écritures est `CORE_BANKING`. Fineract et T24 sont le connecteur choisi dans Réglages. Par défaut, Fineract pointe vers l'instance du namespace `core-banking` : `https://fineract-server.core-banking.svc.cluster.local:8443`, tenant `nexusbank`, journal `/fineract-provider/api/v1/journalentries`. Aucun chemin d'une autre version n'est codé en dur.
 
 Deux façons d'importer, le même pipeline ensuite :
 

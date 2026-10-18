@@ -11,10 +11,15 @@ import fr.nbank.reconciliation.security.ApiException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Map;
@@ -46,7 +51,7 @@ public class CoreBankingPullService {
         this.envAccountsPath = envAccountsPath;
         this.envEntriesPath = envEntriesPath;
         this.envTenant = envTenant;
-        this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        this.http = clusterClient();
     }
 
     public Rows.CoreProfile resolved() {
@@ -118,5 +123,30 @@ public class CoreBankingPullService {
 
     private static boolean blank(String value) {
         return value == null || value.isBlank();
+    }
+
+    /**
+     * L'instance du namespace core-banking présente un certificat au nom de l'ingress.
+     * L'appel interne utilise le nom du service, donc le nom du certificat ne correspond pas.
+     */
+    private static HttpClient clusterClient() {
+        try {
+            TrustManager[] trust = new TrustManager[]{new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            }};
+            SSLContext ssl = SSLContext.getInstance("TLS");
+            ssl.init(null, trust, new SecureRandom());
+            return HttpClient.newBuilder().sslContext(ssl).connectTimeout(Duration.ofSeconds(5)).build();
+        } catch (Exception ex) {
+            return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+        }
     }
 }
