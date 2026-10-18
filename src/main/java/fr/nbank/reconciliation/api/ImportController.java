@@ -1,6 +1,7 @@
 package fr.nbank.reconciliation.api;
 
 import fr.nbank.reconciliation.ingestion.ImportService;
+import fr.nbank.reconciliation.sourceconnectors.CoreBankingPullService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,11 +19,18 @@ import org.springframework.http.ResponseEntity;
 public class ImportController {
 
     private final ImportService imports;
+    private final CoreBankingPullService core;
     private final Idempotency idempotency;
 
-    public ImportController(ImportService imports, Idempotency idempotency) {
+    public ImportController(ImportService imports, CoreBankingPullService core, Idempotency idempotency) {
         this.imports = imports;
+        this.core = core;
         this.idempotency = idempotency;
+    }
+
+    @PostMapping("/core-banking/pull")
+    public ResponseEntity<Views.ImportView> pull(@Valid @RequestBody Commands.PullCore command) {
+        return idempotency.execute(command, Views.ImportView.class, 200, () -> core.pull(command.businessDate(), command.currency()));
     }
 
     @PostMapping

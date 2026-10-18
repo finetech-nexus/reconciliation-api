@@ -39,7 +39,7 @@ Un écart de `controlTotal` place le lot en `QUARANTINED` et ne promeut aucune l
 
 Le même `sourceBatchId` pour un système source renvoie le lot existant, sans seconde écriture canonique.
 
-Les fichiers d'exemple de chaque type sont dans [sources.md](sources.md).
+Les fichiers d'exemple de chaque type sont dans [sources.md](sources.md). Le cycle récurrent BCT, correspondant et core banking est dans [recurrent-imports.md](recurrent-imports.md).
 
 ## CSV canonique
 
@@ -53,7 +53,7 @@ Séparateur `;`, décimal `.`, sens `DEBIT` ou `CREDIT`. Ce format est un profil
 
 ```json
 {
-  "sourceSystem": "FINERACT",
+  "sourceSystem": "CORE_BANKING",
   "sourceType": "ACCOUNTING_ENTRIES",
   "businessDate": "2026-10-16",
   "sourceBatchId": "FIN-GL-20261016-001",

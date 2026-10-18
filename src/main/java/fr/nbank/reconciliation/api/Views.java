@@ -130,6 +130,31 @@ public final class Views {
     public record ConnectorView(String connector, boolean configured, String message) {
     }
 
+    public record CoreProfileView(
+            String sourceSystem,
+            String connectorType,
+            String baseUrl,
+            String tenant,
+            String accountsPath,
+            String entriesPath,
+            boolean configured) {
+    }
+
+    public record CorrespondentView(String code, String name, String bic, String currency, String accountCode) {
+    }
+
+    public record CursorView(
+            String sourceSystem,
+            String accountCode,
+            LocalDate lastBusinessDate,
+            int lastSequence,
+            String lastBatchPublicId,
+            boolean gapDetected) {
+    }
+
+    public record PurgeView(boolean purged) {
+    }
+
     public record ApiError(String code, String message, String correlationId, OffsetDateTime timestamp) {
     }
 }

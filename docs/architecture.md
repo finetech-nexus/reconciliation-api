@@ -33,7 +33,7 @@ PostgreSQL
 
 La file de travaux est la table `work_item`. Elle matérialise la frontière asynchrone du lancement. Le moteur peut être appelé par un worker RabbitMQ plus tard sans changer les règles.
 
-Le connecteur Fineract reste inactif tant que `FINERACT_BASE_URL`, `FINERACT_ACCOUNTS_PATH` et `FINERACT_ENTRIES_PATH` ne sont pas figés sur l'OpenAPI de l'instance installée. Aucun chemin d'une autre version n'est codé en dur.
+Le système source du grand livre est `CORE_BANKING`. Fineract ou T24 se choisit dans Réglages. Le connecteur reste inactif tant que l'adresse et le chemin des écritures ne sont pas saisis, ou tant que `FINERACT_BASE_URL` et `FINERACT_ENTRIES_PATH` ne sont pas posés pour l'instance. Aucun chemin d'une autre version n'est codé en dur. Les relevés BCT et correspondants gardent leur historique de lots : voir [recurrent-imports.md](recurrent-imports.md).
 
 ## Montants et temps
 

@@ -58,6 +58,28 @@ public final class Commands {
             @NotBlank @Pattern(regexp = "OPPOSITE|SAME") String directionMode) {
     }
 
+    public record UpdateCore(
+            @NotBlank @Pattern(regexp = "FINERACT|T24") String connectorType,
+            @Size(max = 300) String baseUrl,
+            @Size(max = 80) String tenant,
+            @Size(max = 200) String accountsPath,
+            @Size(max = 200) String entriesPath) {
+    }
+
+    public record CreateCorrespondent(
+            @NotBlank @Size(max = 40) @Pattern(regexp = "[A-Z0-9_\\-]{2,40}") String code,
+            @NotBlank @Size(max = 200) String name,
+            @Size(max = 11) String bic,
+            @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency,
+            @NotBlank @Size(max = 64) String accountCode) {
+    }
+
+    public record PullCore(@NotNull LocalDate businessDate, @NotBlank @Pattern(regexp = "[A-Z]{3}") String currency) {
+    }
+
+    public record PurgeData(@NotBlank String confirmation) {
+    }
+
     public record RegisterAttachment(
             @NotBlank @Size(max = 200) String filename,
             @NotBlank @Size(max = 80) String contentType,

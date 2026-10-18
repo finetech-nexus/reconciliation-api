@@ -38,7 +38,7 @@ class ReconciliationFlowTest {
     @Test
     void importsReconcilesAndEnforcesApproval() throws Exception {
         String batch = "IT-" + UUID.randomUUID().toString().substring(0, 8);
-        String gl = open("FINERACT", "ACCOUNTING_ENTRIES", batch + "-GL");
+        String gl = open("CORE_BANKING", "ACCOUNTING_ENTRIES", batch + "-GL");
         stage(gl, """
                 source_id;account_id;booking_date;value_date;currency;amount;direction;reference
                 GL-001;BCT-TND-001;2026-10-16;2026-10-16;TND;25000.000;CREDIT;REF-001
@@ -53,7 +53,7 @@ class ReconciliationFlowTest {
         assertEquals("LOADED", loaded.get("status").asText());
         assertEquals(7, loaded.get("acceptedRecords").asInt());
 
-        String replay = open("FINERACT", "ACCOUNTING_ENTRIES", batch + "-GL");
+        String replay = open("CORE_BANKING", "ACCOUNTING_ENTRIES", batch + "-GL");
         assertEquals(gl, replay);
 
         String external = open("BCT", "EXTERNAL_TRANSACTIONS", batch + "-EXT");

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HashSet;
@@ -164,6 +165,9 @@ public class ImportService {
         int finalAccepted = "QUARANTINED".equals(status) && accepted == 0 ? 0 : accepted;
         store.updateBatch(batch.id(), status, finalAccepted, rejected, quarantined, acceptedAmount, controlTotal, null);
         store.insertWork(UUID.randomUUID(), "ingestion", batch.publicId(), "DONE");
+        if (accepted > 0) {
+            advanceCursors(batch, staged, acceptedIds);
+        }
         audit.event(actor.id(), "IMPORT_COMMITTED", "IMPORT", batch.publicId(), status);
         return view(store.findBatch(batch.publicId()).orElseThrow(), false, null);
     }
@@ -192,6 +196,27 @@ public class ImportService {
                 row.sourceRecordId(), row.accountCode(), row.bookingDate(), row.currency(), row.amount(),
                 row.direction(), row.reference(), row.status(), row.rejectReason())).toList();
         return Views.PageView.of(content, page, size, slice.total());
+    }
+
+    private void advanceCursors(Rows.BatchRow batch, java.util.List<Rows.StageRow> staged, Set<UUID> acceptedIds) {
+        java.util.Set<String> accounts = new java.util.LinkedHashSet<>();
+        for (Rows.StageRow row : staged) {
+            if (acceptedIds.contains(row.id()) && row.accountCode() != null) {
+                accounts.add(row.accountCode());
+            }
+        }
+        for (String account : accounts) {
+            var current = store.findCursor(batch.sourceSystemId(), account);
+            LocalDate previous = current.map(Rows.CursorRow::lastBusinessDate).orElse(null);
+            int previousSequence = current.map(Rows.CursorRow::lastSequence).orElse(0);
+            boolean newer = previous == null || batch.businessDate().isAfter(previous);
+            boolean sameDay = previous != null && previous.equals(batch.businessDate());
+            boolean gap = previous != null && batch.businessDate().isAfter(previous.plusDays(1));
+            LocalDate watermark = newer ? batch.businessDate() : previous;
+            int sequence = sameDay ? previousSequence + 1 : (newer ? 1 : previousSequence);
+            boolean gapFlag = gap || (current.map(Rows.CursorRow::gapDetected).orElse(false) && !newer && !sameDay);
+            store.saveCursor(batch.sourceSystemId(), account, watermark, sequence, batch.publicId(), gapFlag);
+        }
     }
 
     private void promote(Rows.BatchRow batch, java.util.List<Rows.StageRow> staged, Set<UUID> acceptedIds) {

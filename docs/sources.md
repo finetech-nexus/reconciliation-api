@@ -12,7 +12,7 @@ La colonne optionnelle `reversal_of` sert à l'extourne. Un mouvement dont la r�
 
 ## ACCOUNTING_ENTRIES
 
-Écritures du grand livre, système `FINERACT`.
+Écritures du grand livre, système `CORE_BANKING`. Fineract ou T24 est le connecteur choisi dans Réglages, pas le nom du lot. Le cycle BCT et correspondant est décrit dans [recurrent-imports.md](recurrent-imports.md).
 
 ```
 source_id;account_id;booking_date;value_date;currency;amount;direction;reference

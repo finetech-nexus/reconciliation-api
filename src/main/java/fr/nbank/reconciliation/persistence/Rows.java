@@ -13,6 +13,21 @@ public final class Rows {
     public record SourceRow(UUID id, String code, String name) {
     }
 
+    public record CoreProfile(String connectorType, String baseUrl, String tenant, String accountsPath, String entriesPath) {
+    }
+
+    public record CorrespondentRow(String code, String name, String bic, String currency, String accountCode) {
+    }
+
+    public record CursorRow(
+            String sourceCode,
+            String accountCode,
+            LocalDate lastBusinessDate,
+            int lastSequence,
+            String lastBatchPublicId,
+            boolean gapDetected) {
+    }
+
     public record AccountRow(UUID id, String accountCode, String name, String currency, String correspondent) {
     }
 

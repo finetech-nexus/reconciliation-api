@@ -106,7 +106,7 @@ Ouverture de lot :
 
 ```json
 {
-  "sourceSystem": "FINERACT",
+  "sourceSystem": "CORE_BANKING",
   "sourceType": "ACCOUNTING_ENTRIES",
   "businessDate": "2026-10-16",
   "sourceBatchId": "FIN-GL-20261016-001",

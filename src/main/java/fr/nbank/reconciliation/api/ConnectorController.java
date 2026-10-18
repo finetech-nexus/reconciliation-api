@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/connectors/fineract")
+@RequestMapping({"/api/v1/connectors/core-banking", "/api/v1/connectors/fineract"})
 public class ConnectorController {
 
     private final FineractConnector fineract;

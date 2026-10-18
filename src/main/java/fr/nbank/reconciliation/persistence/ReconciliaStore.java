@@ -657,6 +657,143 @@ public class ReconciliaStore {
         return count == null ? 0 : count;
     }
 
+    public Rows.CoreProfile coreProfile() {
+        return jdbc.query(
+                """
+                SELECT connector_type, base_url, tenant, accounts_path, entries_path
+                FROM core_profile ORDER BY updated_at DESC
+                """,
+                (rs, i) -> new Rows.CoreProfile(
+                        rs.getString("connector_type"), rs.getString("base_url"), rs.getString("tenant"),
+                        rs.getString("accounts_path"), rs.getString("entries_path")))
+                .stream().findFirst()
+                .orElse(new Rows.CoreProfile("FINERACT", "", "default", "", ""));
+    }
+
+    public void saveCore(String connectorType, String baseUrl, String tenant, String accountsPath, String entriesPath) {
+        jdbc.update(
+                """
+                UPDATE core_profile
+                SET connector_type = ?, base_url = ?, tenant = ?, accounts_path = ?, entries_path = ?, updated_at = CURRENT_TIMESTAMP
+                """,
+                connectorType, baseUrl, tenant.isBlank() ? "default" : tenant, accountsPath, entriesPath);
+    }
+
+    public Optional<Rows.CorrespondentRow> findCorrespondent(String code) {
+        return jdbc.query(
+                "SELECT code, name, bic, currency, account_code FROM correspondent WHERE code = ? AND active = TRUE",
+                (rs, i) -> correspondent(rs),
+                code).stream().findFirst();
+    }
+
+    public List<Rows.CorrespondentRow> listCorrespondents() {
+        return jdbc.query(
+                "SELECT code, name, bic, currency, account_code FROM correspondent WHERE active = TRUE ORDER BY code",
+                (rs, i) -> correspondent(rs));
+    }
+
+    public void insertCorrespondent(UUID id, String code, String name, String bic, String currency, String accountCode) {
+        jdbc.update(
+                """
+                INSERT INTO correspondent (id, code, name, bic, currency, account_code)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                id, code, name, bic, currency, accountCode);
+    }
+
+    public void insertAccount(UUID id, String code, String name, String currency, UUID sourceId, String correspondent) {
+        jdbc.update(
+                """
+                INSERT INTO bank_account (id, account_code, name, currency, source_system_id, correspondent)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                id, code, name, currency, sourceId, correspondent);
+    }
+
+    public Optional<String> accountForGl(UUID sourceId, String glCode) {
+        List<String> rows = jdbc.query(
+                """
+                SELECT a.account_code
+                FROM gl_account_mapping m JOIN bank_account a ON a.id = m.bank_account_id
+                WHERE m.source_system_id = ? AND m.source_gl_code = ?
+                """,
+                (rs, i) -> rs.getString("account_code"),
+                sourceId, glCode);
+        return rows.stream().findFirst();
+    }
+
+    public Optional<Rows.CursorRow> findCursor(UUID sourceId, String accountCode) {
+        return jdbc.query(
+                """
+                SELECT s.code AS source_code, c.account_code, c.last_business_date, c.last_sequence,
+                       c.last_batch_public_id, c.gap_detected
+                FROM statement_cursor c JOIN source_system s ON s.id = c.source_system_id
+                WHERE c.source_system_id = ? AND c.account_code = ?
+                """,
+                (rs, i) -> cursor(rs),
+                sourceId, accountCode).stream().findFirst();
+    }
+
+    public List<Rows.CursorRow> listCursors() {
+        return jdbc.query(
+                """
+                SELECT s.code AS source_code, c.account_code, c.last_business_date, c.last_sequence,
+                       c.last_batch_public_id, c.gap_detected
+                FROM statement_cursor c JOIN source_system s ON s.id = c.source_system_id
+                ORDER BY s.code, c.account_code
+                """,
+                (rs, i) -> cursor(rs));
+    }
+
+    public void saveCursor(UUID sourceId, String accountCode, LocalDate businessDate, int sequence, String batchPublicId, boolean gap) {
+        int updated = jdbc.update(
+                """
+                UPDATE statement_cursor
+                SET last_business_date = ?, last_sequence = ?, last_batch_public_id = ?, gap_detected = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE source_system_id = ? AND account_code = ?
+                """,
+                businessDate, sequence, batchPublicId, gap, sourceId, accountCode);
+        if (updated == 0) {
+            jdbc.update(
+                    """
+                    INSERT INTO statement_cursor
+                        (source_system_id, account_code, last_business_date, last_sequence, last_batch_public_id, gap_detected)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    sourceId, accountCode, businessDate, sequence, batchPublicId, gap);
+        }
+    }
+
+    public void purgeOperational() {
+        jdbc.update("DELETE FROM approval");
+        jdbc.update("DELETE FROM exception_action");
+        jdbc.update("DELETE FROM attachment");
+        jdbc.update("DELETE FROM reconciliation_exception");
+        jdbc.update("DELETE FROM reconciliation_match_item");
+        jdbc.update("DELETE FROM reconciliation_match");
+        jdbc.update("DELETE FROM reconciliation_run");
+        jdbc.update("DELETE FROM external_transaction");
+        jdbc.update("DELETE FROM accounting_entry");
+        jdbc.update("DELETE FROM import_record");
+        jdbc.update("DELETE FROM import_batch");
+        jdbc.update("DELETE FROM work_item");
+        jdbc.update("DELETE FROM statement_cursor");
+        jdbc.update("DELETE FROM idempotency_key");
+    }
+
+    private static Rows.CorrespondentRow correspondent(ResultSet rs) throws SQLException {
+        return new Rows.CorrespondentRow(
+                rs.getString("code"), rs.getString("name"), rs.getString("bic"),
+                trim(rs.getString("currency")), rs.getString("account_code"));
+    }
+
+    private static Rows.CursorRow cursor(ResultSet rs) throws SQLException {
+        return new Rows.CursorRow(
+                rs.getString("source_code"), rs.getString("account_code"),
+                rs.getObject("last_business_date", LocalDate.class), rs.getInt("last_sequence"),
+                rs.getString("last_batch_public_id"), rs.getBoolean("gap_detected"));
+    }
+
     private static final String BATCH_SQL = """
             SELECT b.id, b.public_id, b.source_system_id, s.code AS source_code, b.source_type, b.business_date,
                    b.source_batch_id, b.currency, b.expected_record_count, b.status, b.accepted_records,
